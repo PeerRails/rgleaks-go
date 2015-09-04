@@ -10,15 +10,16 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 )
 
 type Image struct {
 	Id          int64
-	Source      string
+	Source      string `xorm: "unique"`
 	Path        string
 	Name        string `xorm: "index"`
 	Uploaded_to string
-	Created_at  string `xorm: "created"`
+	Created_at  time.Time `xorm: "created"`
 }
 
 var (
@@ -27,7 +28,11 @@ var (
 )
 
 func InsertImage(image *Image) error {
-	_, err := x.Insert(image)
+	var hasImage = Image{Source: image.Source}
+	has, err := x.Get(&hasImage)
+	if !has {
+		_, err = x.Insert(image)
+	}
 	return err
 }
 
@@ -99,7 +104,7 @@ func DownloadImage(url string, name string) (downloaded bool, fileName string) {
 }
 
 func main() {
-	url := "http://rghost.ru/main"
+	url := "http://rghost.net/main"
 	var err error
 	x, err = xorm.NewEngine("sqlite3", "./images.db")
 	if err != nil {
@@ -112,6 +117,9 @@ func main() {
 		os.Exit(1)
 	}
 	x.Sync(new(Image))
+	for {
+		ScrapeRgHost(url)
+		time.Sleep(10 * time.Second)
+	}
 
-	ScrapeRgHost(url)
 }
