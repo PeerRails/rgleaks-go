@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/go-xorm/xorm"
+	"github.com/joho/godotenv"
+	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 	"io"
 	"log"
@@ -13,22 +15,25 @@ import (
 	"time"
 )
 
-type Image struct {
+type Images struct {
 	Id          int64
 	Source      string `xorm: "unique"`
 	Path        string
 	Name        string `xorm: "index"`
 	Uploaded_to string
 	Created_at  time.Time `xorm: "created"`
+	Updated_at  time.Time `xorm: "created"`
 }
 
 var (
-	x     *xorm.Engine
-	imgbi = "https://img.bi"
+	x      *xorm.Engine
+	imgbi  string = "https://img.bi"
+	sqlite string = "./images.db"
+	psql   string = "dbname=images_test user=lenny password=123456 sslmode=disable"
 )
 
-func InsertImage(image *Image) error {
-	var hasImage = Image{Source: image.Source}
+func InsertImage(image *Images) error {
+	var hasImage = Images{Source: image.Source}
 	has, err := x.Get(&hasImage)
 	if !has {
 		_, err = x.Insert(image)
@@ -37,6 +42,7 @@ func InsertImage(image *Image) error {
 }
 
 func ScrapeRgHost(url string) {
+
 	doc, err := goquery.NewDocument(url)
 	if err != nil {
 		log.Fatal(err)
@@ -54,7 +60,7 @@ func ScrapeFileLink(s *goquery.Selection) {
 		url := GetDirectLink(href)
 		downloaded, fileName := DownloadImage(url, name)
 		if downloaded {
-			err := InsertImage(&Image{Source: url, Path: fileName, Name: name})
+			err := InsertImage(&Images{Source: url, Path: fileName, Name: name})
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -103,10 +109,21 @@ func DownloadImage(url string, name string) (downloaded bool, fileName string) {
 	return true, fileName
 }
 
+func init() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+	DB_URL := os.Getenv("DB_URL")
+	if DB_URL != "" {
+		psql = DB_URL
+	}
+}
+
 func main() {
-	url := "http://rghost.net/main"
+	url := "http://rghost.ru/main"
 	var err error
-	x, err = xorm.NewEngine("sqlite3", "./images.db")
+	x, err = xorm.NewEngine("postgres", psql)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -116,9 +133,11 @@ func main() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	x.Sync(new(Image))
+	x.Sync(new(Images))
 	for {
 		ScrapeRgHost(url)
+		fmt.Println("Done Scraping")
+		os.Exit(1)
 		time.Sleep(10 * time.Second)
 	}
 
