@@ -89,8 +89,7 @@ func DownloadImage(url string, name string) (downloaded bool, fileName string) {
 	dirname := fmt.Sprintf("%s/%s", img_dir, nowTime)
 	dirCreated, err := dirExists(dirname)
 	if err != nil {
-		fmt.Println("Error while creating", dirname, "-", err)
-		return false, fileName
+		fmt.Println("Error while looking for", dirname, "-", err)
 	}
 	if !dirCreated {
 		err := os.Mkdir(dirname, 0777)
