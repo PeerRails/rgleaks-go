@@ -1,9 +1,10 @@
-package tor
+package main
 
 import (
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"log"
+	"time"
 )
 
 func main() {
@@ -17,4 +18,5 @@ func main() {
 		name := s.Text()
 		fmt.Println(name)
 	})
+	fmt.Println(time.Now().Format("20060102"))
 }

@@ -85,7 +85,20 @@ func GetDirectLink(name string) (dl string) {
 
 func DownloadImage(url string, name string) (downloaded bool, fileName string) {
 	tokens := strings.Split(url, "/")
-	fileName = fmt.Sprintf("%s/%s-%s", img_dir, tokens[len(tokens)-2], name)
+	dirname := fmt.Sprintf("%s/%s", img_dir, time.Now().Format("20060102"))
+	dirCreated, err := dirExists(dirname)
+	if err != nil {
+		fmt.Println("Error while creating", dirname, "-", err)
+		return false, fileName
+	}
+	if !dirCreated {
+		err := os.Mkdir(dirname, 0777)
+		if err != nil {
+			fmt.Println("Error while creating", dirname, "-", err)
+			return false, dirname
+		}
+	}
+	fileName = fmt.Sprintf("%s/%s-%s", dirname, tokens[len(tokens)-2], name)
 
 	output, err := os.Create(fileName)
 	if err != nil {
@@ -108,6 +121,17 @@ func DownloadImage(url string, name string) (downloaded bool, fileName string) {
 	}
 
 	return true, fileName
+}
+
+func dirExists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return true, err
 }
 
 func init() {
