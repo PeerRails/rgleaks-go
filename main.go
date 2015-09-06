@@ -22,7 +22,7 @@ type Images struct {
 	Name        string `xorm: "index"`
 	Uploaded_to string
 	Created_at  time.Time `xorm: "created"`
-	Updated_at  time.Time `xorm: "created"`
+	Updated_at  time.Time `xorm: "updated"`
 }
 
 var (
@@ -85,7 +85,8 @@ func GetDirectLink(name string) (dl string) {
 
 func DownloadImage(url string, name string) (downloaded bool, fileName string) {
 	tokens := strings.Split(url, "/")
-	dirname := fmt.Sprintf("%s/%s", img_dir, time.Now().Format("20060102"))
+	nowTime := time.Now().Format("20060102")
+	dirname := fmt.Sprintf("%s/%s", img_dir, nowTime)
 	dirCreated, err := dirExists(dirname)
 	if err != nil {
 		fmt.Println("Error while creating", dirname, "-", err)
@@ -119,8 +120,9 @@ func DownloadImage(url string, name string) (downloaded bool, fileName string) {
 		fmt.Println("Error while downloading", url, "-", err)
 		return false, fileName
 	}
-
+	fileName = fmt.Sprintf("images/%s/%s-%s", nowTime, tokens[len(tokens)-2], name)
 	return true, fileName
+
 }
 
 func dirExists(path string) (bool, error) {
