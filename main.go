@@ -26,10 +26,11 @@ type Images struct {
 }
 
 var (
-	x      *xorm.Engine
-	imgbi  string = "https://img.bi"
-	sqlite string = "./images.db"
-	psql   string = "dbname=images_test user=lenny password=123456 sslmode=disable"
+	x       *xorm.Engine
+	imgbi   string = "https://img.bi"
+	sqlite  string = "./images.db"
+	psql    string = "dbname=images_test user=lenny password=123456 sslmode=disable"
+	img_dir string = "images/"
 )
 
 func InsertImage(image *Images) error {
@@ -84,7 +85,7 @@ func GetDirectLink(name string) (dl string) {
 
 func DownloadImage(url string, name string) (downloaded bool, fileName string) {
 	tokens := strings.Split(url, "/")
-	fileName = fmt.Sprintf("images/%s-%s", tokens[len(tokens)-2], name)
+	fileName = fmt.Sprintf("%s/%s-%s", img_dir, tokens[len(tokens)-2], name)
 
 	output, err := os.Create(fileName)
 	if err != nil {
@@ -115,8 +116,12 @@ func init() {
 		log.Fatal("Error loading .env file")
 	}
 	DB_URL := os.Getenv("DB_URL")
+	IMG_DIR := os.Getenv("IMG_DIR")
 	if DB_URL != "" {
 		psql = DB_URL
+	}
+	if IMG_DIR != "" {
+		img_dir = IMG_DIR
 	}
 }
 
@@ -136,8 +141,6 @@ func main() {
 	x.Sync(new(Images))
 	for {
 		ScrapeRgHost(url)
-		fmt.Println("Done Scraping")
-		os.Exit(1)
 		time.Sleep(10 * time.Second)
 	}
 
