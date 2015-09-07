@@ -128,7 +128,7 @@ func createThumb(fileName string, dirname string, ext string, nowTime string) (t
 	}
 	file.Close()
 
-	m := resize.Thumbnail(200, 200, img, resize.NearestNeighbor)
+	m := resize.Thumbnail(200, 150, img, resize.NearestNeighbor)
 	thumbName := fmt.Sprintf("%s/%s", thumbDir, fileName)
 	out, err := os.Create(thumbName)
 	if err != nil {
