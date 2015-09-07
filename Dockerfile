@@ -12,5 +12,5 @@ RUN chmod +x /home/deploy/rgleaks-64
 RUN chown -R deploy:deploy $HOME
 RUN echo 'Acquire::http::Proxy "http://172.17.42.1:8118/";' > /etc/apt/apt.conf.d/proxy
 USER deploy
-RUN cd /home/deploy/
-CMD ["./home/deploy/rgleaks-64"]
+WORKDIR /home/deploy/
+CMD ["./rgleaks-64"]
