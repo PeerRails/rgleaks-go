@@ -1,18 +1,18 @@
 package main
 
 import (
-	"errors"
+	//"errors"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/go-xorm/xorm"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/nfnt/resize"
-	"image"
-	"image/gif"
-	"image/jpeg"
-	"image/png"
+	//"github.com/nfnt/resize"
+	//"image"
+	//"image/gif"
+	//"image/jpeg"
+	//"image/png"
 	"io"
 	"log"
 	"net/http"
@@ -92,7 +92,7 @@ func GetDirectLink(name string) (dl string) {
 	return fmt.Sprintf("http://rghost.ru%s/image.png", name)
 }
 
-func createThumb(fileName string, dirname string, ext string, nowTime string) (thumb string, err error) {
+/*func createThumb(fileName string, dirname string, ext string, nowTime string) (thumb string, err error) {
 
 	thumbDir := fmt.Sprintf("%s/thumb", dirname)
 	thumbDirCreated, err := dirExists(thumbDir)
@@ -145,6 +145,7 @@ func createThumb(fileName string, dirname string, ext string, nowTime string) (t
 	}
 	return fmt.Sprintf("images/%s/thumb/%s", nowTime, fileName), err
 }
+*/
 
 func DownloadImage(url string, name string, ext string) (downloaded bool, fileName string, thumbName string) {
 	tokens := strings.Split(url, "/")
@@ -184,11 +185,12 @@ func DownloadImage(url string, name string, ext string) (downloaded bool, fileNa
 		return false, "", ""
 	}
 
-	filePath := fmt.Sprintf("%s-%s", tokens[len(tokens)-2], name)
-	thumb, err := createThumb(filePath, dirname, ext, nowTime)
-	if err != nil {
-		thumb = fmt.Sprintf("images/%s/%s-%s", nowTime, tokens[len(tokens)-2], name)
-	}
+	//filePath := fmt.Sprintf("%s-%s", tokens[len(tokens)-2], name)
+	//thumb, err := createThumb(filePath, dirname, ext, nowTime)
+	//if err != nil {
+	//	thumb = fmt.Sprintf("images/%s/%s-%s", nowTime, tokens[len(tokens)-2], name)
+	//}
+	thumb := fmt.Sprintf("images/%s/%s-%s", nowTime, tokens[len(tokens)-2], name)
 	fileName = fmt.Sprintf("images/%s/%s-%s", nowTime, tokens[len(tokens)-2], name)
 	return true, fileName, thumb
 
