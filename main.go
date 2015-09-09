@@ -1,19 +1,14 @@
 package main
 
 import (
-	//"errors"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
+	"github.com/daddye/vips"
 	"github.com/go-xorm/xorm"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
-	_ "github.com/mattn/go-sqlite3"
-	//"github.com/nfnt/resize"
-	//"image"
-	//"image/gif"
-	//"image/jpeg"
-	//"image/png"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -30,8 +25,8 @@ type Images struct {
 	Created_at  time.Time
 	Updated_at  time.Time
 	File_type   string `xorm: "index"`
-	Archived    bool
-	Thumb_path  string
+	Archived    bool   `xorm: "index default false"`
+	Thumbnail   string
 }
 
 var (
@@ -41,7 +36,7 @@ var (
 	img_dir string = "images/"
 )
 
-func InsertImage(image *Images) error {
+func (image *Images) InsertImage() error {
 	var hasImage = Images{Source: image.Source}
 	has, err := x.Get(&hasImage)
 	if !has {
@@ -63,14 +58,17 @@ func ScrapeRgHost(url string) {
 }
 
 func ScrapeFileLink(s *goquery.Selection) {
-	name := s.Text()
+	i := Images{Created_at: time.Now(), Updated_at: time.Now()}
+	i.Name = s.Text()
 	href, _ := s.Attr("href")
-	isImage, ext := IsImageType(name)
+	isImage := i.IsImageType()
 	if isImage {
-		url := GetDirectLink(href)
-		downloaded, fileName, thumbName := DownloadImage(url, name, ext)
+		i.Source = fmt.Sprintf("http://rghost.ru%s/image.png", href)
+		downloaded := i.DownloadImage()
 		if downloaded {
-			err := InsertImage(&Images{Source: url, Path: fileName, Thumb_path: thumbName, Name: name, Created_at: time.Now(), Updated_at: time.Now(), Uploaded_to: "yes", File_type: ext})
+			i.Uploaded_to = "yes"
+			i.Archived = false
+			err := i.InsertImage()
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -78,133 +76,116 @@ func ScrapeFileLink(s *goquery.Selection) {
 	}
 }
 
-func IsImageType(name string) (result bool, ext_type string) {
-	split_name := strings.Split(name, ".")
-	ext := split_name[len(split_name)-1]
-	if ext == "jpg" || ext == "png" || ext == "gif" || ext == "jpeg" {
-		return true, ext
+func (image *Images) IsImageType() (result bool) {
+	split_name := strings.Split(image.Name, ".")
+	image.File_type = split_name[len(split_name)-1]
+	if image.File_type == "jpg" || image.File_type == "png" || image.File_type == "gif" || image.File_type == "jpeg" {
+		return true
 	} else {
-		return false, ext
+		return false
 	}
 }
 
-func GetDirectLink(name string) (dl string) {
-	return fmt.Sprintf("http://rghost.ru%s/image.png", name)
-}
-
-/*func createThumb(fileName string, dirname string, ext string, nowTime string) (thumb string, err error) {
-
-	thumbDir := fmt.Sprintf("%s/thumb", dirname)
-	thumbDirCreated, err := dirExists(thumbDir)
-	if err != nil {
-		fmt.Println("Error while looking for", thumbDirCreated, "-", err)
-	}
-	if !thumbDirCreated {
-		err := os.Mkdir(thumbDir, 0777)
-		if err != nil {
-			fmt.Println("Error while creating", thumbDir, "-", err)
-			return thumbDir, err
-		}
-	}
-	filePath := fmt.Sprintf("%s/%s", dirname, fileName)
-	file, err := os.Open(filePath)
-	if err != nil {
-		fmt.Println("Error while opening", filePath, "-", err)
-		return fileName, err
-	}
-	var img image.Image
-	if ext == "jpeg" || ext == "jpg" {
-		img, err = jpeg.Decode(file)
-	} else if ext == "png" {
-		img, err = png.Decode(file)
-	} else if ext == "gif" {
-		img, err = gif.Decode(file)
-	} else {
-		err = errors.New("type is not supported")
-	}
-	if err != nil {
-		fmt.Println("Error while decoding", fileName, "-", err)
-		return fmt.Sprintf("images/%s/thumb/%s", nowTime, fileName), nil
-	}
-	file.Close()
-
-	m := resize.Thumbnail(200, 150, img, resize.NearestNeighbor)
-	thumbName := fmt.Sprintf("%s/%s", thumbDir, fileName)
-	out, err := os.Create(thumbName)
-	if err != nil {
-		return fmt.Sprintf("images/%s/thumb/%s", nowTime, fileName), err
-	}
-	defer out.Close()
-
-	if ext == "jpeg" || ext == "jpeg" {
-		jpeg.Encode(out, m, nil)
-	} else if ext == "png" {
-		png.Encode(out, m)
-	} else if ext == "gif" {
-		gif.Encode(out, m, nil)
-	}
-	return fmt.Sprintf("images/%s/thumb/%s", nowTime, fileName), err
-}
-*/
-
-func DownloadImage(url string, name string, ext string) (downloaded bool, fileName string, thumbName string) {
-	tokens := strings.Split(url, "/")
+func (image *Images) DownloadImage() (downloaded bool) {
+	tokens := strings.Split(image.Source, "/")
 	nowTime := time.Now().Format("20060102")
 	dirname := fmt.Sprintf("%s/%s", img_dir, nowTime)
-	dirCreated, err := dirExists(dirname)
+	err := dirExists(dirname)
 	if err != nil {
 		fmt.Println("Error while looking for", dirname, "-", err)
-	}
-	if !dirCreated {
-		err := os.Mkdir(dirname, 0777)
-		if err != nil {
-			fmt.Println("Error while creating", dirname, "-", err)
-			return false, "", ""
-		}
+		return false
 	}
 
-	fileName = fmt.Sprintf("%s/%s-%s", dirname, tokens[len(tokens)-2], name)
+	thumb_dirname := fmt.Sprintf("%s/%s/thumb", img_dir, nowTime)
+	err = dirExists(thumb_dirname)
+	if err != nil {
+		fmt.Println("Error while looking for", dirname, "-", err)
+		return false
+	}
+
+	fileName := fmt.Sprintf("%s/%s.%s", dirname, tokens[len(tokens)-2], image.File_type)
 
 	output, err := os.Create(fileName)
 	if err != nil {
-		fmt.Println("Error while creating", fileName, "-", err)
-		return false, "", ""
+		fmt.Println("Error while creating original", fileName, "-", err)
+		return false
 	}
 	defer output.Close()
 
-	response, err := http.Get(url)
+	response, err := http.Get(image.Source)
 	if err != nil {
-		fmt.Println("Error while downloading", url, "-", err)
-		return false, "", ""
+		fmt.Println("Error while downloading original", image.Source, "-", err)
+		return false
 	}
 	defer response.Body.Close()
 
 	_, err = io.Copy(output, response.Body)
 	if err != nil {
-		fmt.Println("Error while downloading", url, "-", err)
-		return false, "", ""
+		fmt.Println("Error while saving original", image.Source, "-", err)
+		return false
 	}
 
-	//filePath := fmt.Sprintf("%s-%s", tokens[len(tokens)-2], name)
-	//thumb, err := createThumb(filePath, dirname, ext, nowTime)
-	//if err != nil {
-	//	thumb = fmt.Sprintf("images/%s/%s-%s", nowTime, tokens[len(tokens)-2], name)
-	//}
-	thumb := fmt.Sprintf("images/%s/%s-%s", nowTime, tokens[len(tokens)-2], name)
-	fileName = fmt.Sprintf("images/%s/%s-%s", nowTime, tokens[len(tokens)-2], name)
-	return true, fileName, thumb
+	image.Thumbnail = fmt.Sprintf("images/%s/thumb/%s.%s", nowTime, tokens[len(tokens)-2], image.File_type)
+	image.Path = fmt.Sprintf("images/%s/%s.%s", nowTime, tokens[len(tokens)-2], image.File_type)
+	err = image.CreateThumbnail(fmt.Sprintf("%s/%s.%s", thumb_dirname, tokens[len(tokens)-2], image.File_type))
+	if err != nil {
+		ferr := os.Remove(image.Path)
+		if ferr != nil {
+			fmt.Println("Error while removing", image.Path, "-", ferr)
+		}
+		return false
+	}
+
+	return true
 
 }
 
-func dirExists(path string) (bool, error) {
+func (image *Images) CreateThumbnail(thumb string) error {
+	options := vips.Options{
+		Width:        200,
+		Height:       150,
+		Crop:         false,
+		Extend:       vips.EXTEND_WHITE,
+		Interpolator: vips.BILINEAR,
+		Gravity:      vips.CENTRE,
+		Quality:      95,
+	}
+
+	f, _ := os.Open(image.Path)
+	inBuf, _ := ioutil.ReadAll(f)
+	defer f.Close()
+	buf, err := vips.Resize(inBuf, options)
+	if err != nil {
+		fmt.Println("Error while opening original", image.Path, "-", err)
+		return err
+	}
+
+	file, err := os.Create(thumb)
+	if err != nil {
+		fmt.Println("Error while creating thumbnail", thumb, "-", err)
+		return err
+	}
+	defer file.Close()
+	err = ioutil.WriteFile(thumb, buf, 777)
+	if err != nil {
+		fmt.Println("Error while saving thumbnail", thumb, "-", err)
+		return err
+	}
+	return nil
+}
+
+func dirExists(path string) error {
 	_, err := os.Stat(path)
 	if err == nil {
-		return true, nil
+		return nil
 	}
 	if os.IsNotExist(err) {
-		return false, nil
+		err := os.Mkdir(path, 0777)
+		if err != nil {
+			return err
+		}
 	}
-	return true, err
+	return nil
 }
 
 func init() {
