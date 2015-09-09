@@ -31,7 +31,6 @@ type Images struct {
 
 var (
 	x       *xorm.Engine
-	sqlite  string = "./images.db"
 	psql    string = "dbname=images_test user=lenny password=123456 sslmode=disable"
 	img_dir string = "images/"
 )
@@ -43,6 +42,19 @@ func (image *Images) InsertImage() error {
 		_, err = x.Insert(image)
 	}
 	return err
+}
+
+func torcheck() {
+	url := "https://check.torproject.org/"
+	doc, err := goquery.NewDocument(url)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	doc.Find(".content h1").Each(func(i int, s *goquery.Selection) {
+		name := s.Text()
+		fmt.Println(name)
+	})
 }
 
 func ScrapeRgHost(url string) {
@@ -191,15 +203,24 @@ func dirExists(path string) error {
 func init() {
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		fmt.Println("Error loading .env file\nTrying ENVs")
 	}
 	DB_URL := os.Getenv("DB_URL")
 	IMG_DIR := os.Getenv("IMG_DIR")
+
 	if DB_URL != "" {
 		psql = DB_URL
 	}
 	if IMG_DIR != "" {
 		img_dir = IMG_DIR
+	}
+	if len(os.Args) > 1 {
+		if os.Args[1] == "torcheck" {
+			torcheck()
+		} else {
+			fmt.Println("Known args: torcheck")
+		}
+		os.Exit(1)
 	}
 }
 
