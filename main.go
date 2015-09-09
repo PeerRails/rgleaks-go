@@ -186,6 +186,10 @@ func (image *Images) CreateThumbnail(thumb string) error {
 	return nil
 }
 
+func MassCreateThumbnail() {
+
+}
+
 func dirExists(path string) error {
 	_, err := os.Stat(path)
 	if err == nil {
