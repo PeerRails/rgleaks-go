@@ -154,8 +154,8 @@ func (image *Images) DownloadImage() (downloaded bool) {
 
 func (image *Images) CreateThumbnail(thumb string) error {
 	options := vips.Options{
-		Width:        200,
-		Height:       150,
+		Width:        400,
+		Height:       300,
 		Crop:         false,
 		Extend:       vips.EXTEND_WHITE,
 		Interpolator: vips.BILINEAR,
@@ -184,10 +184,6 @@ func (image *Images) CreateThumbnail(thumb string) error {
 		return err
 	}
 	return nil
-}
-
-func MassCreateThumbnail() {
-
 }
 
 func dirExists(path string) error {
