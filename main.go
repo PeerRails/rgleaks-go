@@ -5,7 +5,6 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/daddye/vips"
 	"github.com/go-xorm/xorm"
-	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 	"io"
 	"io/ioutil"
@@ -201,10 +200,6 @@ func dirExists(path string) error {
 }
 
 func init() {
-	err := godotenv.Load()
-	if err != nil {
-		fmt.Println("Error loading .env file\nTrying ENVs")
-	}
 	DB_URL := os.Getenv("DB_URL")
 	IMG_DIR := os.Getenv("IMG_DIR")
 
