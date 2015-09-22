@@ -38,8 +38,6 @@ export DB_URL=postgres://lenny:123456@localhost/rgleaks-test?sslmode=disable
 export IMG_DIR=/var/www/rgleaks/images
 ```
 
-IMG_DIR must end with **/images** !
-
 Build binary or use existing binary
 
 ```go
@@ -48,15 +46,18 @@ package main
 
 import (
 	"github.com/peerrails/rgleaks-go"
+	"time"
 )
 
 func main() {
 	for {
-		ScrapeRgHost(url)
+		url := "http://rghost.ru/main"
+		rgleaksgo.ScrapeRgHost(url)
 		time.Sleep(10 * time.Second)
 	}
 
 }
+
 
 //command-line
 go build rgleaks.go
@@ -69,13 +70,20 @@ docker pull linuxconfig/instantprivacy
 docker run --rm -p 8118:8118 linuxconfig/instantprivacy
 ```
 
-Check connection with torcheck argument
+Check connectiPon with torcheck argument
 
 ```bash
 http_proxy=127.0.0.1:8118 rgleaks torcheck
 ```
 
-RUN
+You should see
+>
+>
+>  Congratulations. This browser is configured to use Tor.
+>
+>
+
+RUN and WATCH
 
 ```bash
 http_proxy=127.0.0.1:8118 rgleaks

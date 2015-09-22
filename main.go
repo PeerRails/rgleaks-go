@@ -31,7 +31,7 @@ type Images struct {
 var (
 	x       *xorm.Engine
 	psql    string = "dbname=images_test user=lenny password=123456 sslmode=disable"
-	img_dir string = "images/"
+	img_dir string = "images"
 )
 
 func (image *Images) InsertImage() error {
