@@ -217,4 +217,17 @@ func init() {
 		}
 		os.Exit(1)
 	}
+	url := "http://rghost.ru/main"
+	var err error
+	x, err = xorm.NewEngine("postgres", psql)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	defer x.Close()
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	x.Sync(new(Images))
 }
