@@ -1,4 +1,4 @@
-package rgleaks-go
+package rgleaksgo
 
 import (
 	"fmt"
