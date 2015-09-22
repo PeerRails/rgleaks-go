@@ -217,7 +217,6 @@ func init() {
 		}
 		os.Exit(1)
 	}
-	url := "http://rghost.ru/main"
 	var err error
 	x, err = xorm.NewEngine("postgres", psql)
 	if err != nil {
